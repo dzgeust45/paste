@@ -1,0 +1,160 @@
+Build paste-life.site — a minimal Pastebin-style website.
+Requirements:
+
+General
+
+No login system.
+
+Frontend must be a static SPA hosted on GitHub Pages.
+
+Backend storage must use Supabase.
+
+Deliver a complete GitHub repo.
+
+Features
+
+Create paste
+
+Fields: title (optional), content (required), language (optional), expiration (1h / 1d / 1w / never), privacy (public, unlisted, private).
+
+Return a short slug and a secret_token for edit/delete.
+
+Show copyable link + raw link.
+
+View paste
+
+Syntax highlighting.
+
+/raw/<slug> (text/plain).
+
+Show created_at, expires_at, views.
+
+Expired pastes return a friendly “expired” message.
+
+Edit/Delete paste
+
+No login — must require secret_token.
+
+Must be handled server-side using secure Edge Function or backend logic with service role key.
+
+Privacy
+
+public: listable/searchable.
+
+unlisted: only via URL, not searchable.
+
+private: only accessible by secret token (Edge Function check).
+
+Extra
+
+Paste statistics (views).
+
+Raw + embed snippet (<iframe>).
+
+Optional CAPTCHA support.
+
+Per-IP rate limiting to prevent abuse.
+
+Security
+
+Prevent XSS (sanitize output or render inside code block).
+
+Use Supabase Row Level Security:
+
+anon users can INSERT
+
+anon users can SELECT only public/unlisted
+
+private pastes only selectable via server/Edge Function
+
+Never expose service role key in frontend.
+
+Database schema
+
+Use this exact table schema:
+
+create table public.pastes (
+  id uuid default gen_random_uuid() primary key,
+  slug text not null unique,
+  title text,
+  content text not null,
+  language text,
+  privacy text not null default 'unlisted',
+  secret_token text not null,
+  created_at timestamptz default now(),
+  expires_at timestamptz,
+  views int default 0
+);
+
+create index on public.pastes (created_at desc);
+create index on public.pastes using gin ((to_tsvector('english', coalesce(title,'') || ' ' || content)));
+
+Deliverables
+
+Provide a complete GitHub repo containing:
+
+frontend/ SPA ready for GitHub Pages
+
+scripts/ with optional Edge Function files to handle private access, edit, delete, and view counter
+
+README.md
+
+GitHub Actions workflow to build + deploy to GitHub Pages
+
+VERY IMPORTANT — You must also include:
+
+A full tutorial in the README explaining step-by-step:
+
+How to set up GitHub
+
+How to set up GitHub Pages
+
+How to deploy with the gh-pages branch
+
+How to configure custom domain (paste-life.site)
+
+How to add DNS records
+
+How to fix SPA routing on GitHub Pages
+
+How to configure Supabase, schema, RLS, and Edge Functions
+
+How to store service role key safely
+
+How to fix ALL common errors (CORS, 404 routing, environment variables, build failures, permission errors, Supabase RLS errors, invalid anon key, expired JWT, etc.)
+
+A "Troubleshooting" section with every possible error and how to fix it
+
+GitHub Pages not loading
+
+blank white screen
+
+404 on refresh
+
+build errors
+
+environment variable issues
+
+Supabase not saving
+
+permissions denied due to RLS
+
+CORS blocking requests
+
+secret token invalid
+
+Edge Function not responding
+
+A "Setup for GitHub Pages branch" section explaining:
+
+How to create gh-pages branch
+
+How to deploy build output to that branch
+
+How to configure GitHub Actions to auto-deploy
+
+How to add CNAME
+
+How to verify deployment
+
+You must ask me to provide my Supabase URL + anon key + (optionally) service role key so you can test functionality, especially paste creation.
