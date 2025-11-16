@@ -48,9 +48,41 @@ export default function ViewPaste() {
   const [editContent, setEditContent] = useState("");
   const [editLanguage, setEditLanguage] = useState("plaintext");
 
-  const { data: paste, isLoading, error } = useQuery<Paste>({
-    queryKey: ["/api/pastes", slug],
+  const [privateToken, setPrivateToken] = useState("");
+  const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [tokenError, setTokenError] = useState("");
+  const [requiresToken, setRequiresToken] = useState(false);
+
+  const { data: paste, isLoading, error, refetch } = useQuery<Paste>({
+    queryKey: ["/api/pastes", slug, privateToken],
+    queryFn: async () => {
+      const url = privateToken 
+        ? `/api/pastes/${slug}?token=${encodeURIComponent(privateToken)}`
+        : `/api/pastes/${slug}`;
+      
+      const res = await fetch(url);
+      
+      if (res.status === 403) {
+        const data = await res.json();
+        if (data.requiresToken) {
+          setRequiresToken(true);
+          setShowTokenDialog(true);
+          throw new Error("REQUIRES_TOKEN");
+        }
+      }
+      
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || res.statusText);
+      }
+      
+      // Successfully fetched - clear any previous token requirement
+      setRequiresToken(false);
+      setShowTokenDialog(false);
+      return await res.json();
+    },
     enabled: !!slug,
+    retry: false,
   });
 
   useEffect(() => {
@@ -146,7 +178,90 @@ export default function ViewPaste() {
     );
   }
 
-  if (error || !paste) {
+  // Show loading state
+  if (isLoading && !requiresToken) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+          <Skeleton className="h-12 w-3/4" />
+          <Card className="p-6">
+            <Skeleton className="h-96 w-full" />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Show token dialog for private pastes
+  if (requiresToken && !paste) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-5xl mx-auto p-4 md:p-6">
+          <Dialog open={showTokenDialog} onOpenChange={(open) => {
+            if (!open) {
+              setLocation("/");
+            }
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle data-testid="text-private-dialog-title">Private Paste</DialogTitle>
+                <DialogDescription>
+                  This paste is private and requires a secret token to view.
+                </DialogDescription>
+              </DialogHeader>
+              <div>
+                <Label htmlFor="private-token">Secret Token *</Label>
+                <Input
+                  id="private-token"
+                  type="password"
+                  placeholder="Enter the paste's secret token"
+                  value={privateToken}
+                  onChange={(e) => {
+                    setPrivateToken(e.target.value);
+                    setTokenError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && privateToken) {
+                      refetch();
+                    }
+                  }}
+                  data-testid="input-private-token"
+                />
+                {tokenError && (
+                  <p className="text-sm text-destructive mt-2">{tokenError}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setLocation("/")}
+                  data-testid="button-cancel-private"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (privateToken) {
+                      refetch();
+                    } else {
+                      setTokenError("Please enter a token");
+                    }
+                  }}
+                  disabled={!privateToken}
+                  data-testid="button-submit-private-token"
+                >
+                  View Paste
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state for other errors (not found, expired, etc.)
+  if ((error && error.message !== "REQUIRES_TOKEN") || (!paste && !requiresToken)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md p-8 text-center space-y-4">
@@ -155,7 +270,7 @@ export default function ViewPaste() {
           </div>
           <h2 className="text-2xl font-semibold" data-testid="text-paste-not-found">Paste Not Found</h2>
           <p className="text-muted-foreground">
-            This paste doesn't exist, has expired, or requires a secret token to view.
+            This paste doesn't exist or has expired.
           </p>
           <Button onClick={() => setLocation("/")} data-testid="button-create-new">
             Create New Paste
@@ -163,6 +278,10 @@ export default function ViewPaste() {
         </Card>
       </div>
     );
+  }
+
+  if (!paste) {
+    return null;
   }
 
   const privacyIcon = paste.privacy === "public" ? Globe : paste.privacy === "private" ? Lock : EyeOff;
@@ -379,6 +498,7 @@ export default function ViewPaste() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

@@ -53,6 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/pastes/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
+      const token = req.query.token as string | undefined;
       
       const { data: paste, error } = await supabaseAdmin
         .from('pastes')
@@ -69,11 +70,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(410).json({ error: "Paste has expired" });
       }
       
-      // Check privacy - private pastes should be handled via Edge Function
-      // For now, we'll allow backend to serve them (simplified implementation)
+      // Check privacy - private pastes require secret token
       if (paste.privacy === 'private') {
-        // In production, this should be handled by Edge Function with token verification
-        // For MVP, we'll return the paste but frontend should show token requirement
+        if (!token || token !== paste.secret_token) {
+          return res.status(403).json({ 
+            error: "This paste is private. Please provide a valid secret token.",
+            requiresToken: true 
+          });
+        }
       }
       
       // Increment view counter
