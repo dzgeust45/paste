@@ -4,9 +4,10 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
-  base: process.env.GITHUB_REPOSITORY
-    ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/`
-    : "/",
+  // Use / as base - works for custom domains
+  // If you later want to use github.io subdirectory, change to:
+  // base: process.env.GITHUB_REPOSITORY ? `/${process.env.GITHUB_REPOSITORY.split("/")[1]}/` : "/"
+  base: "/",
   plugins: [
     react(),
     runtimeErrorOverlay(),
