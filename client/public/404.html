@@ -18,14 +18,22 @@
     <!-- Prism.js for Syntax Highlighting - Tomorrow Night Theme -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" />
+    
+    <script>
+      // GitHub Pages SPA workaround
+      // Redirect to index.html while preserving the path
+      if (window.location.pathname !== '/') {
+        const path = window.location.pathname;
+        // Store path in sessionStorage for the app to read
+        sessionStorage.setItem('redirectPath', path);
+        // Redirect to home
+        window.location.href = '/';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Prism.js Core and Languages -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <!-- This script tag will be replaced by Vite during build -->
+    <!-- The actual built JS file will be included automatically -->
   </body>
 </html>
