@@ -1,5 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
-import { useEffect } from "react";
+import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,17 +10,6 @@ import RawPaste from "@/pages/raw-paste";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const [, setLocation] = useLocation();
-
-  // Handle redirect from 404.html for GitHub Pages
-  useEffect(() => {
-    const redirectPath = sessionStorage.getItem('redirect_path');
-    if (redirectPath) {
-      sessionStorage.removeItem('redirect_path');
-      setLocation(redirectPath);
-    }
-  }, [setLocation]);
-
   return (
     <Switch>
       <Route path="/" component={CreatePaste} />
