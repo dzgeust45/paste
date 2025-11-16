@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
-import { createPaste } from "@/lib/localStorage";
+import { createPasteAPI } from "@/lib/api";
 import { useLocation } from "wouter";
 import { Copy, Link as LinkIcon, FileText, Lock, Globe, EyeOff } from "lucide-react";
 
@@ -36,7 +36,7 @@ export default function CreatePaste() {
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertPaste) => {
-      return createPaste(data);
+      return createPasteAPI(data);
     },
     onSuccess: (data: any) => {
       setCreatedPaste(data);

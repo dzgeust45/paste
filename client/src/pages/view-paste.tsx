@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { getPaste, updatePaste, deletePaste } from "@/lib/localStorage";
+import { getPasteAPI, updatePasteAPI, deletePasteAPI } from "@/lib/api";
 import {
   Copy,
   Eye,
@@ -56,27 +56,20 @@ export default function ViewPaste() {
   const { data: paste, isLoading, error, refetch } = useQuery<Paste>({
     queryKey: ["/api/pastes", slug, privateToken],
     queryFn: async () => {
-      const result = getPaste(slug, privateToken || undefined);
-      
-      if (!result) {
-        if (privateToken) {
-          setTokenError("Invalid token");
-          throw new Error("Invalid token");
-        }
-        // Try to show token dialog for private pastes
-        const pasteList = (typeof window !== 'undefined' && (window as any).__pastesCache) || [];
-        const paste = pasteList.find((p: any) => p.slug === slug);
-        if (paste && paste.privacy === "private") {
+      try {
+        const result = await getPasteAPI(slug, privateToken || undefined);
+        setRequiresToken(false);
+        setShowTokenDialog(false);
+        setTokenError("");
+        return result as any;
+      } catch (err: any) {
+        if (err.requiresToken) {
           setRequiresToken(true);
           setShowTokenDialog(true);
-          throw new Error("REQUIRES_TOKEN");
+          throw err;
         }
-        throw new Error("Paste not found");
+        throw err;
       }
-      
-      setRequiresToken(false);
-      setShowTokenDialog(false);
-      return result as any;
     },
     enabled: !!slug,
     retry: false,
@@ -92,9 +85,7 @@ export default function ViewPaste() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { title?: string; content: string; language?: string; secret_token: string }) => {
-      const result = updatePaste(slug, data, data.secret_token);
-      if (!result) throw new Error("Failed to update paste or invalid token");
-      return result;
+      return updatePasteAPI(slug, data, data.secret_token);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/pastes", slug] });
@@ -116,9 +107,7 @@ export default function ViewPaste() {
 
   const deleteMutation = useMutation({
     mutationFn: async (secret_token: string) => {
-      const success = deletePaste(slug, secret_token);
-      if (!success) throw new Error("Failed to delete paste or invalid token");
-      return success;
+      return deletePasteAPI(slug, secret_token);
     },
     onSuccess: () => {
       toast({
