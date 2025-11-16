@@ -3,77 +3,87 @@ import { type InsertPaste } from '@shared/schema';
 import { nanoid } from 'nanoid';
 
 export async function createPasteAPI(data: InsertPaste) {
-  const slug = nanoid(8);
-  const secret_token = nanoid(64);
+  try {
+    const slug = nanoid(8);
+    const secret_token = nanoid(64);
 
-  // Calculate expiration if needed
-  let expires_at = null;
-  if (data.expiration && data.expiration !== 'never') {
-    const now = new Date();
-    if (data.expiration === '1h') {
-      now.setHours(now.getHours() + 1);
-    } else if (data.expiration === '1d') {
-      now.setDate(now.getDate() + 1);
-    } else if (data.expiration === '1w') {
-      now.setDate(now.getDate() + 7);
+    // Calculate expiration if needed
+    let expires_at = null;
+    if (data.expiration && data.expiration !== 'never') {
+      const now = new Date();
+      if (data.expiration === '1h') {
+        now.setHours(now.getHours() + 1);
+      } else if (data.expiration === '1d') {
+        now.setDate(now.getDate() + 1);
+      } else if (data.expiration === '1w') {
+        now.setDate(now.getDate() + 7);
+      }
+      expires_at = now.toISOString();
     }
-    expires_at = now.toISOString();
+
+    const { error } = await supabase.from('pastes').insert({
+      slug,
+      title: data.title || null,
+      content: data.content,
+      language: data.language || 'plaintext',
+      privacy: data.privacy || 'unlisted',
+      secret_token,
+      created_at: new Date().toISOString(),
+      expires_at,
+      views: 0,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return { slug, secret_token };
+  } catch (err: any) {
+    console.error('createPasteAPI error:', err);
+    throw err;
   }
-
-  const { error } = await supabase.from('pastes').insert({
-    slug,
-    title: data.title || null,
-    content: data.content,
-    language: data.language || 'plaintext',
-    privacy: data.privacy || 'unlisted',
-    secret_token,
-    created_at: new Date().toISOString(),
-    expires_at,
-    views: 0,
-  });
-
-  if (error) throw new Error(error.message);
-
-  return { slug, secret_token };
 }
 
 export async function getPasteAPI(slug: string, token?: string) {
-  const { data, error } = await supabase
-    .from('pastes')
-    .select('*')
-    .eq('slug', slug)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('pastes')
+      .select('*')
+      .eq('slug', slug)
+      .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      throw new Error('Paste not found');
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error('Paste not found');
+      }
+      throw new Error(error.message);
     }
-    throw new Error(error.message);
-  }
 
-  // Check if expired
-  if (data.expires_at && new Date(data.expires_at) < new Date()) {
-    // Delete expired paste
-    await supabase.from('pastes').delete().eq('slug', slug);
-    throw new Error('Paste has expired');
-  }
-
-  // Check privacy
-  if (data.privacy === 'private') {
-    if (!token || token !== data.secret_token) {
-      const error = new Error('This paste is private');
-      (error as any).requiresToken = true;
-      throw error;
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      // Delete expired paste
+      await supabase.from('pastes').delete().eq('slug', slug);
+      throw new Error('Paste has expired');
     }
+
+    // Check privacy
+    if (data.privacy === 'private') {
+      if (!token || token !== data.secret_token) {
+        const error = new Error('This paste is private');
+        (error as any).requiresToken = true;
+        throw error;
+      }
+    }
+
+    // Increment view count
+    await supabase
+      .from('pastes')
+      .update({ views: (data.views || 0) + 1 })
+      .eq('slug', slug);
+
+    return data;
+  } catch (err: any) {
+    console.error('getPasteAPI error:', err);
+    throw err;
   }
-
-  // Increment view count
-  await supabase
-    .from('pastes')
-    .update({ views: (data.views || 0) + 1 })
-    .eq('slug', slug);
-
-  return data;
 }
 
 export async function updatePasteAPI(
