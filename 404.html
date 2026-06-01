@@ -34,24 +34,10 @@
     <script>(function(s){s.dataset.zone='10196174',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
     
     <script>
-      // GitHub Pages SPA workaround
+      // GitHub Pages SPA workaround for custom domain
       // Redirect to index.html while preserving the path
-      const path = window.location.pathname;
-      // Get the base path (e.g., "/paste" for github.io/paste or "" for custom domain)
-      const parts = path.split('/').filter(Boolean);
-      const isGitHubPages = window.location.hostname.includes('github.io');
-      
-      if (isGitHubPages && parts.length > 0) {
-        // We're on GitHub Pages with a subdirectory
-        const basePath = '/' + parts[0];
-        const actualPath = '/' + parts.slice(1).join('/');
-        
-        if (actualPath !== '/') {
-          sessionStorage.setItem('redirectPath', actualPath);
-          window.location.href = basePath + '/';
-        }
-      } else if (path !== '/') {
-        // Custom domain or root path
+      if (window.location.pathname !== '/') {
+        const path = window.location.pathname;
         sessionStorage.setItem('redirectPath', path);
         window.location.href = '/';
       }
