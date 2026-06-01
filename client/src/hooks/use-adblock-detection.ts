@@ -5,56 +5,27 @@ export function useAdBlockDetection() {
   const [isChecking, setIsChecking] = useState<boolean>(true);
 
   useEffect(() => {
-    const detectAdBlock = async () => {
+    // Add a small delay to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
       try {
-        // Method 1: Check for blocked ad-related elements
-        const adClasses = [
-          "ad-testing",
-          "advertisement",
-          "ad-banner",
-          "adsbygoogle",
-        ];
+        // Check if content marked as "ad" is being blocked
+        const adContent = document.querySelector("[data-ad-block-test]");
 
-        let detected = false;
+        if (adContent) {
+          // Check if the element has been hidden/removed by ad blocker
+          const computedStyle = window.getComputedStyle(adContent);
+          const isHidden =
+            computedStyle.display === "none" ||
+            computedStyle.visibility === "hidden" ||
+            adContent.offsetHeight === 0 ||
+            adContent.offsetWidth === 0;
 
-        for (const className of adClasses) {
-          const elem = document.createElement("div");
-          elem.className = className;
-          elem.style.display = "none";
-          elem.style.width = "1px";
-          elem.style.height = "1px";
-          document.body.appendChild(elem);
+          // Also check if element is removed from DOM
+          const isRemoved = !document.body.contains(adContent);
 
-          // Ad blockers typically block elements with ad-related classNames
-          if (elem.offsetHeight === 0 || elem.offsetWidth === 0) {
-            detected = true;
-            document.body.removeChild(elem);
-            break;
-          }
-
-          document.body.removeChild(elem);
-        }
-
-        if (detected) {
-          setAdBlockDetected(true);
-          setIsChecking(false);
-          return;
-        }
-
-        // Method 2: Try fetching an ad server endpoint
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-        try {
-          await fetch(
-            "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js",
-            { signal: controller.signal, mode: "no-cors" }
-          );
-          clearTimeout(timeoutId);
+          setAdBlockDetected(isHidden || isRemoved);
+        } else {
           setAdBlockDetected(false);
-        } catch (error) {
-          clearTimeout(timeoutId);
-          setAdBlockDetected(true);
         }
 
         setIsChecking(false);
@@ -62,10 +33,8 @@ export function useAdBlockDetection() {
         setAdBlockDetected(false);
         setIsChecking(false);
       }
-    };
+    }, 200);
 
-    // Add a small delay to ensure DOM is ready
-    const timer = setTimeout(detectAdBlock, 100);
     return () => clearTimeout(timer);
   }, []);
 

@@ -3,7 +3,6 @@ import { useAdBlockDetection } from "@/hooks/use-adblock-detection";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -25,25 +24,16 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
     }
   }, [adBlockDetected, isChecking]);
 
-  const handleRetry = async () => {
-    // Wait a moment then reload to re-check
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
-  };
-
   // While checking, show normal content
   if (isChecking) {
     return <>{children}</>;
   }
 
-  // If ad block detected, show dialog and blur content
+  // If ad block detected (content was blocked), show dialog and hide content
   if (adBlockDetected) {
     return (
       <>
-        <div className="blur-sm pointer-events-none select-none opacity-50">
-          {children}
-        </div>
+        <div className="hidden">{children}</div>
         <AlertDialog open={open} onOpenChange={setOpen}>
           <AlertDialogContent className="max-w-md">
             <AlertDialogHeader>
@@ -51,8 +41,8 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
                 Ad Blocker Detected
               </AlertDialogTitle>
               <AlertDialogDescription className="text-base">
-                This site is free and relies on ads to stay running. Please
-                disable your ad blocker to continue viewing content.
+                Your ad blocker is blocking this content. Please disable it to
+                view pastes on this site.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="py-4">
@@ -61,16 +51,13 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
               </p>
               <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
                 <li>Click the ad blocker icon in your browser toolbar</li>
-                <li>Select "Disable on this site" or "Allow ads"</li>
-                <li>Make sure no rules are blocking this domain</li>
+                <li>Select "Disable on this site"</li>
+                <li>Refresh the page</li>
               </ul>
             </div>
-            <AlertDialogFooter className="gap-2">
-              <AlertDialogCancel onClick={() => setOpen(false)}>
-                I'll Disable It Later
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={handleRetry}>
-                I've Disabled Ad Blocker
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => window.location.reload()}>
+                Refresh After Disabling
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
