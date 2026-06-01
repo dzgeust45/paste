@@ -34,6 +34,22 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    // Create hidden ad elements that ad blockers will block
+    const adContainer = document.createElement("div");
+    adContainer.id = "ad-container";
+    adContainer.className = "adsbygoogle";
+    adContainer.style.display = "none";
+    adContainer.innerHTML = '<ins class="adsbygoogle" data-ad-client="ca-pub-123"></ins>';
+    document.body.appendChild(adContainer);
+
+    return () => {
+      if (document.body.contains(adContainer)) {
+        document.body.removeChild(adContainer);
+      }
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

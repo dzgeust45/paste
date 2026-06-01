@@ -358,7 +358,7 @@ export default function ViewPaste() {
           </Button>
         </div>
 
-        <Card className="overflow-hidden adsbygoogle advertisement">
+        <Card id="advertisement" className="overflow-hidden">
           <pre className="line-numbers m-0 !bg-transparent !border-0" data-testid="code-block">
             <code className={`language-${paste.language || "plaintext"}`}>
               {paste.content}

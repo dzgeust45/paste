@@ -5,32 +5,57 @@ export function useAdBlockDetection() {
   const [isChecking, setIsChecking] = useState<boolean>(true);
 
   useEffect(() => {
-    // Add a small delay to ensure DOM is fully rendered
     const timer = setTimeout(() => {
       try {
-        // Check if content marked as "ad" is being blocked
-        const adContent = document.querySelector(".adsbygoogle, .advertisement, .ad");
-
-        if (adContent) {
-          // Check if the element has been hidden/removed by ad blocker
-          const computedStyle = window.getComputedStyle(adContent);
-          const isHidden =
-            computedStyle.display === "none" ||
-            computedStyle.visibility === "hidden" ||
-            adContent.offsetHeight === 0 ||
-            adContent.offsetWidth === 0;
-
-          setAdBlockDetected(isHidden);
-        } else {
-          setAdBlockDetected(false);
+        // First check the main ad container that's created early
+        const adContainer = document.getElementById("ad-container");
+        if (adContainer && !document.body.contains(adContainer)) {
+          setAdBlockDetected(true);
+          setIsChecking(false);
+          return;
         }
 
+        // Check multiple elements that ad blockers target
+        const adSelectors = [
+          "#ad",
+          "#advertisement",
+          "#google-ad",
+          "#banner-ad",
+          ".ad",
+          ".advertisement",
+          ".adsbygoogle",
+          "[id*='ad-']",
+          "[id*='advertisement']",
+          "[id*='google-ad']",
+        ];
+
+        let detected = false;
+
+        for (const selector of adSelectors) {
+          const element = document.querySelector(selector);
+          if (element) {
+            const style = window.getComputedStyle(element);
+            // Check if hidden by ad blocker
+            if (
+              style.display === "none" ||
+              style.visibility === "hidden" ||
+              element.offsetHeight === 0 ||
+              element.offsetWidth === 0 ||
+              !document.body.contains(element)
+            ) {
+              detected = true;
+              break;
+            }
+          }
+        }
+
+        setAdBlockDetected(detected);
         setIsChecking(false);
       } catch (error) {
         setAdBlockDetected(false);
         setIsChecking(false);
       }
-    }, 300);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, []);
