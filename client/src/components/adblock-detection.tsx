@@ -41,43 +41,45 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
     return <>{children}</>;
   }
 
-  // If ad block detected, hide content and show dialog
-  if (adBlockDetected) {
-    return (
-      <>
-        <div className="hidden">{children}</div>
-        <AlertDialog open={open} onOpenChange={setOpen}>
-          <AlertDialogContent className="max-w-md">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-xl">
-                Ad Blocker Detected
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-base">
-                Your ad blocker is blocking this content. Please disable it to
-                view pastes on this site.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="py-4">
-              <p className="text-sm text-muted-foreground mb-3">
-                <strong>How to disable in Brave:</strong>
-              </p>
-              <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-                <li>Click the Brave Shields icon (⚔) in your address bar</li>
-                <li>Toggle "Shields" to OFF</li>
-                <li>Click the button below to refresh</li>
-              </ol>
-            </div>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleRefresh}>
-                Refresh After Disabling
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </>
-    );
-  }
+  // Return content + dialog at same level (not nested)
+  // This way the dialog is NOT blocked even if content is
+  return (
+    <>
+      {/* Show hidden content container if ad blocker is detected */}
+      {adBlockDetected && <div className="hidden">{children}</div>}
+      
+      {/* Show normal content if no ad blocker */}
+      {!adBlockDetected && <>{children}</>}
 
-  // No ad block detected, show content normally
-  return <>{children}</>;
+      {/* Popup is rendered at root level - NOT inside the hidden container */}
+      <AlertDialog open={open && adBlockDetected} onOpenChange={setOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl">
+              Ad Blocker Detected
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Your ad blocker is blocking this content. Please disable it to
+              view pastes on this site.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-3">
+              <strong>How to disable in Brave:</strong>
+            </p>
+            <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
+              <li>Click the Brave Shields icon (⚔) in your address bar</li>
+              <li>Toggle "Shields" to OFF</li>
+              <li>Click the button below to refresh</li>
+            </ol>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleRefresh}>
+              Refresh After Disabling
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }
