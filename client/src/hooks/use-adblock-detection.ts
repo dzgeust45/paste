@@ -5,59 +5,78 @@ export function useAdBlockDetection() {
   const [isChecking, setIsChecking] = useState<boolean>(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const detectAdBlock = async () => {
       try {
-        // First check the main ad container that's created early
-        const adContainer = document.getElementById("ad-container");
-        if (adContainer && !document.body.contains(adContainer)) {
-          setAdBlockDetected(true);
-          setIsChecking(false);
-          return;
-        }
+        // Clear any cached detection
+        sessionStorage.removeItem("adBlockDetected");
 
-        // Check multiple elements that ad blockers target
-        const adSelectors = [
-          "#ad",
-          "#advertisement",
-          "#google-ad",
-          "#banner-ad",
-          ".ad",
-          ".advertisement",
-          ".adsbygoogle",
-          "[id*='ad-']",
-          "[id*='advertisement']",
-          "[id*='google-ad']",
-        ];
+        // Method 1: Test if ad network requests are blocked (best for Brave)
+        const testAdUrl =
+          "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
 
-        let detected = false;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-        for (const selector of adSelectors) {
-          const element = document.querySelector(selector);
-          if (element) {
-            const style = window.getComputedStyle(element);
-            // Check if hidden by ad blocker
-            if (
-              style.display === "none" ||
-              style.visibility === "hidden" ||
-              element.offsetHeight === 0 ||
-              element.offsetWidth === 0 ||
-              !document.body.contains(element)
-            ) {
-              detected = true;
-              break;
-            }
+          const response = await fetch(testAdUrl, {
+            method: "HEAD",
+            mode: "no-cors",
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          // In no-cors mode, blocked requests still return 0 status
+          if (response.status === 0) {
+            setAdBlockDetected(true);
+            setIsChecking(false);
+            return;
           }
+        } catch (error) {
+          // Network error could mean blocked
+          console.log("Network request error - likely ad blocker");
         }
 
-        setAdBlockDetected(detected);
+        // Method 2: Test with baited elements (for extension blockers)
+        const bait = document.createElement("div");
+        bait.innerHTML = "&nbsp;";
+        bait.className =
+          "advertisement ads ad_banner pub_300x250 pub_300x600 pub_728x90";
+        bait.id = "__ad_container__";
+        bait.style.cssText =
+          "width:1px;height:1px;position:absolute;left:-9999px;top:-9999px;";
+        document.body.appendChild(bait);
+
+        const isElementBlocked =
+          bait.offsetHeight === 0 || bait.offsetWidth === 0;
+        document.body.removeChild(bait);
+
+        setAdBlockDetected(isElementBlocked);
         setIsChecking(false);
       } catch (error) {
+        console.log("Detection error:", error);
         setAdBlockDetected(false);
         setIsChecking(false);
       }
-    }, 800);
+    };
 
-    return () => clearTimeout(timer);
+    // Run detection immediately
+    detectAdBlock();
+
+    // Also listen for visibility changes - when tab becomes active again
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setIsChecking(true);
+        // Re-run detection when tab becomes visible
+        setTimeout(detectAdBlock, 100);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   return { adBlockDetected, isChecking };
