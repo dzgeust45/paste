@@ -7,45 +7,66 @@ export function useAdBlockDetection() {
   useEffect(() => {
     const detectAdBlock = async () => {
       try {
-        // Method 1: Try to create a fake ad element
-        const testElement = document.createElement("div");
-        testElement.innerHTML = "&nbsp;";
-        testElement.className = "ad-testing";
-        testElement.style.display = "none";
-        document.body.appendChild(testElement);
+        // Method 1: Check for blocked ad-related elements
+        const adClasses = [
+          "ad-testing",
+          "advertisement",
+          "ad-banner",
+          "adsbygoogle",
+        ];
 
-        // Check if the element was removed or hidden by ad blocker
-        const detected = testElement.offsetHeight === 0;
-        
-        document.body.removeChild(testElement);
+        let detected = false;
 
-        // Method 2: Try to load a common ad server script
-        if (!detected) {
-          const script = document.createElement("script");
-          script.src = "//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
-          script.onerror = () => setAdBlockDetected(true);
-          script.onload = () => setAdBlockDetected(false);
-          document.head.appendChild(script);
-          
-          // Timeout after 2 seconds if no response
-          setTimeout(() => {
-            setAdBlockDetected(detected);
-            setIsChecking(false);
-            if (document.head.contains(script)) {
-              document.head.removeChild(script);
-            }
-          }, 2000);
-        } else {
+        for (const className of adClasses) {
+          const elem = document.createElement("div");
+          elem.className = className;
+          elem.style.display = "none";
+          elem.style.width = "1px";
+          elem.style.height = "1px";
+          document.body.appendChild(elem);
+
+          // Ad blockers typically block elements with ad-related classNames
+          if (elem.offsetHeight === 0 || elem.offsetWidth === 0) {
+            detected = true;
+            document.body.removeChild(elem);
+            break;
+          }
+
+          document.body.removeChild(elem);
+        }
+
+        if (detected) {
           setAdBlockDetected(true);
           setIsChecking(false);
+          return;
         }
+
+        // Method 2: Try fetching an ad server endpoint
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        try {
+          await fetch(
+            "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js",
+            { signal: controller.signal, mode: "no-cors" }
+          );
+          clearTimeout(timeoutId);
+          setAdBlockDetected(false);
+        } catch (error) {
+          clearTimeout(timeoutId);
+          setAdBlockDetected(true);
+        }
+
+        setIsChecking(false);
       } catch (error) {
-        setAdBlockDetected(true);
+        setAdBlockDetected(false);
         setIsChecking(false);
       }
     };
 
-    detectAdBlock();
+    // Add a small delay to ensure DOM is ready
+    const timer = setTimeout(detectAdBlock, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   return { adBlockDetected, isChecking };

@@ -3,6 +3,7 @@ import { useAdBlockDetection } from "@/hooks/use-adblock-detection";
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -23,6 +24,13 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
       setOpen(true);
     }
   }, [adBlockDetected, isChecking]);
+
+  const handleRetry = async () => {
+    // Wait a moment then reload to re-check
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  };
 
   // While checking, show normal content
   if (isChecking) {
@@ -53,12 +61,15 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
               </p>
               <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
                 <li>Click the ad blocker icon in your browser toolbar</li>
-                <li>Select "Disable on this site"</li>
-                <li>Refresh the page</li>
+                <li>Select "Disable on this site" or "Allow ads"</li>
+                <li>Make sure no rules are blocking this domain</li>
               </ul>
             </div>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={() => window.location.reload()}>
+            <AlertDialogFooter className="gap-2">
+              <AlertDialogCancel onClick={() => setOpen(false)}>
+                I'll Disable It Later
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleRetry}>
                 I've Disabled Ad Blocker
               </AlertDialogAction>
             </AlertDialogFooter>
