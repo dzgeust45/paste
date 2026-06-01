@@ -29,5 +29,5 @@ export default function RawPaste() {
     return <div>Paste not found or expired.</div>;
   }
 
-  return <>{paste.content}</>;
+  return <div className="adsbygoogle">{paste.content}</div>;
 }

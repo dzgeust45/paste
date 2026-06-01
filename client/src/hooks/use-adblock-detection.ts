@@ -10,13 +10,29 @@ export function useAdBlockDetection() {
         // Clear any cached detection
         sessionStorage.removeItem("adBlockDetected");
 
-        // Method 1: Test if ad network requests are blocked (best for Brave)
+        // Check if content marked as ad is visible
+        const contentAd = document.querySelector(".adsbygoogle");
+        
+        if (contentAd) {
+          const style = window.getComputedStyle(contentAd);
+          const isBlocked =
+            style.display === "none" ||
+            style.visibility === "hidden" ||
+            contentAd.offsetHeight === 0 ||
+            contentAd.offsetWidth === 0;
+
+          setAdBlockDetected(isBlocked);
+          setIsChecking(false);
+          return;
+        }
+
+        // Fallback: test network-based detection
         const testAdUrl =
           "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
 
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
+          const timeoutId = setTimeout(() => controller.abort(), 1500);
 
           const response = await fetch(testAdUrl, {
             method: "HEAD",
@@ -25,33 +41,13 @@ export function useAdBlockDetection() {
           });
 
           clearTimeout(timeoutId);
-
-          // In no-cors mode, blocked requests still return 0 status
-          if (response.status === 0) {
-            setAdBlockDetected(true);
-            setIsChecking(false);
-            return;
-          }
+          // If request succeeds, ad blocker is NOT active
+          setAdBlockDetected(false);
         } catch (error) {
-          // Network error could mean blocked
-          console.log("Network request error - likely ad blocker");
+          // Request failed = ad blocker is active
+          setAdBlockDetected(true);
         }
 
-        // Method 2: Test with baited elements (for extension blockers)
-        const bait = document.createElement("div");
-        bait.innerHTML = "&nbsp;";
-        bait.className =
-          "advertisement ads ad_banner pub_300x250 pub_300x600 pub_728x90";
-        bait.id = "__ad_container__";
-        bait.style.cssText =
-          "width:1px;height:1px;position:absolute;left:-9999px;top:-9999px;";
-        document.body.appendChild(bait);
-
-        const isElementBlocked =
-          bait.offsetHeight === 0 || bait.offsetWidth === 0;
-        document.body.removeChild(bait);
-
-        setAdBlockDetected(isElementBlocked);
         setIsChecking(false);
       } catch (error) {
         console.log("Detection error:", error);
@@ -60,21 +56,21 @@ export function useAdBlockDetection() {
       }
     };
 
-    // Run detection immediately
-    detectAdBlock();
+    // Add delay to let DOM render
+    const timer = setTimeout(detectAdBlock, 300);
 
-    // Also listen for visibility changes - when tab becomes active again
+    // Also listen for visibility changes
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         setIsChecking(true);
-        // Re-run detection when tab becomes visible
-        setTimeout(detectAdBlock, 100);
+        setTimeout(detectAdBlock, 300);
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
