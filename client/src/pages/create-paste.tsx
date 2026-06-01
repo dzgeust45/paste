@@ -210,7 +210,7 @@ export default function CreatePaste() {
                 />
               </div>
 
-              <div className="adsbygoogle advertisement ad-banner" id="ad-content">
+              <div>
                 <div className="flex items-center justify-between mb-2">
                   <Label htmlFor="content" className="text-sm font-medium">
                     Content *
