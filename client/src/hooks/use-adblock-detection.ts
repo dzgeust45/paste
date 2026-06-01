@@ -9,7 +9,7 @@ export function useAdBlockDetection() {
     const timer = setTimeout(() => {
       try {
         // Check if content marked as "ad" is being blocked
-        const adContent = document.querySelector("[data-ad-block-test]");
+        const adContent = document.querySelector(".adsbygoogle, .advertisement, .ad");
 
         if (adContent) {
           // Check if the element has been hidden/removed by ad blocker
@@ -20,10 +20,7 @@ export function useAdBlockDetection() {
             adContent.offsetHeight === 0 ||
             adContent.offsetWidth === 0;
 
-          // Also check if element is removed from DOM
-          const isRemoved = !document.body.contains(adContent);
-
-          setAdBlockDetected(isHidden || isRemoved);
+          setAdBlockDetected(isHidden);
         } else {
           setAdBlockDetected(false);
         }
@@ -33,7 +30,7 @@ export function useAdBlockDetection() {
         setAdBlockDetected(false);
         setIsChecking(false);
       }
-    }, 200);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, []);
