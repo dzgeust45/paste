@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Header } from "@/components/header";
+import { AdBlockDetection } from "@/components/adblock-detection";
 import CreatePaste from "@/pages/create-paste";
 import ViewPaste from "@/pages/view-paste";
 import RawPaste from "@/pages/raw-paste";
@@ -36,10 +37,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen bg-background">
-          <Header />
-          <Router />
-        </div>
+        <AdBlockDetection>
+          <div className="min-h-screen bg-background">
+            <Header />
+            <Router />
+          </div>
+        </AdBlockDetection>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
