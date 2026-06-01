@@ -36,11 +36,23 @@
     <script>
       // GitHub Pages SPA workaround
       // Redirect to index.html while preserving the path
-      if (window.location.pathname !== '/') {
-        const path = window.location.pathname;
-        // Store path in sessionStorage for the app to read
+      const path = window.location.pathname;
+      // Get the base path (e.g., "/paste" for github.io/paste or "" for custom domain)
+      const parts = path.split('/').filter(Boolean);
+      const isGitHubPages = window.location.hostname.includes('github.io');
+      
+      if (isGitHubPages && parts.length > 0) {
+        // We're on GitHub Pages with a subdirectory
+        const basePath = '/' + parts[0];
+        const actualPath = '/' + parts.slice(1).join('/');
+        
+        if (actualPath !== '/') {
+          sessionStorage.setItem('redirectPath', actualPath);
+          window.location.href = basePath + '/';
+        }
+      } else if (path !== '/') {
+        // Custom domain or root path
         sessionStorage.setItem('redirectPath', path);
-        // Redirect to home
         window.location.href = '/';
       }
     </script>
