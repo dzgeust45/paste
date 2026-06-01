@@ -19,20 +19,17 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    // Only show dialog if ad block is detected and not loading
+    // Show dialog if ad block is detected
     if (!isChecking && adBlockDetected) {
       setOpen(true);
     } else if (!isChecking && !adBlockDetected) {
-      // If ad block is NOT detected, close the dialog
       setOpen(false);
     }
   }, [adBlockDetected, isChecking]);
 
   const handleRefresh = () => {
-    // Clear any cached state
     sessionStorage.removeItem("adBlockDetected");
     localStorage.removeItem("adBlockDetected");
-    // Reload the page to re-check
     window.location.reload();
   };
 
@@ -41,17 +38,14 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
     return <>{children}</>;
   }
 
-  // Return content + dialog at same level (not nested)
-  // This way the dialog is NOT blocked even if content is
+  // Always render children and popup at same level
+  // The content will be hidden by ad blocker if it has adsbygoogle class
+  // The popup will NOT be hidden because it's not marked as an ad
   return (
     <>
-      {/* Show hidden content container if ad blocker is detected */}
-      {adBlockDetected && <div className="hidden">{children}</div>}
+      {children}
       
-      {/* Show normal content if no ad blocker */}
-      {!adBlockDetected && <>{children}</>}
-
-      {/* Popup is rendered at root level - NOT inside the hidden container */}
+      {/* Popup dialog - NOT blocked because it doesn't have ad class */}
       <AlertDialog open={open && adBlockDetected} onOpenChange={setOpen}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
@@ -59,8 +53,7 @@ export function AdBlockDetection({ children }: AdBlockDetectionProps) {
               Ad Blocker Detected
             </AlertDialogTitle>
             <AlertDialogDescription className="text-base">
-              Your ad blocker is blocking this content. Please disable it to
-              view pastes on this site.
+              Your ad blocker is blocking the content on this page. Please disable it to view pastes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">

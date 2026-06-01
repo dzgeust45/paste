@@ -319,7 +319,7 @@ export default function ViewPaste() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 adsbygoogle">
           <Button
             variant="outline"
             size="sm"

@@ -10,44 +10,24 @@ export function useAdBlockDetection() {
         // Clear any cached detection
         sessionStorage.removeItem("adBlockDetected");
 
-        // Check if content marked as ad is visible
-        const contentAd = document.querySelector(".adsbygoogle");
+        // Check if ANY element with adsbygoogle class is blocked
+        const adElements = document.querySelectorAll(".adsbygoogle");
         
-        if (contentAd) {
-          const style = window.getComputedStyle(contentAd);
-          const isBlocked =
+        let isBlocked = false;
+        for (const element of adElements) {
+          const style = window.getComputedStyle(element);
+          if (
             style.display === "none" ||
             style.visibility === "hidden" ||
-            contentAd.offsetHeight === 0 ||
-            contentAd.offsetWidth === 0;
-
-          setAdBlockDetected(isBlocked);
-          setIsChecking(false);
-          return;
+            element.offsetHeight === 0 ||
+            element.offsetWidth === 0
+          ) {
+            isBlocked = true;
+            break;
+          }
         }
 
-        // Fallback: test network-based detection
-        const testAdUrl =
-          "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
-
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 1500);
-
-          const response = await fetch(testAdUrl, {
-            method: "HEAD",
-            mode: "no-cors",
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-          // If request succeeds, ad blocker is NOT active
-          setAdBlockDetected(false);
-        } catch (error) {
-          // Request failed = ad blocker is active
-          setAdBlockDetected(true);
-        }
-
+        setAdBlockDetected(isBlocked);
         setIsChecking(false);
       } catch (error) {
         console.log("Detection error:", error);
@@ -57,13 +37,13 @@ export function useAdBlockDetection() {
     };
 
     // Add delay to let DOM render
-    const timer = setTimeout(detectAdBlock, 300);
+    const timer = setTimeout(detectAdBlock, 500);
 
     // Also listen for visibility changes
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         setIsChecking(true);
-        setTimeout(detectAdBlock, 300);
+        setTimeout(detectAdBlock, 500);
       }
     };
 
