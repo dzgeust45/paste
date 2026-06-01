@@ -319,7 +319,7 @@ export default function ViewPaste() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 adsbygoogle">
+        <div className="flex flex-wrap gap-2 adsbygoogle advertisement ad-banner" id="ad-container">
           <Button
             variant="outline"
             size="sm"
@@ -358,7 +358,7 @@ export default function ViewPaste() {
           </Button>
         </div>
 
-        <Card className="overflow-hidden adsbygoogle">
+        <Card className="overflow-hidden adsbygoogle advertisement" id="advertisement" data-ad-client="ca-pub-xxxxxxxxxxxxxxxx">
           <pre className="line-numbers m-0 !bg-transparent !border-0" data-testid="code-block">
             <code className={`language-${paste.language || "plaintext"}`}>
               {paste.content}

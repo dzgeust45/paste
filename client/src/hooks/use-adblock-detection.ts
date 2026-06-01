@@ -10,21 +10,33 @@ export function useAdBlockDetection() {
         // Clear any cached detection
         sessionStorage.removeItem("adBlockDetected");
 
-        // Check if ANY element with adsbygoogle class is blocked
-        const adElements = document.querySelectorAll(".adsbygoogle");
-        
+        // Check if ANY element with ad-related selectors is blocked by ad blocker
+        const adSelectors = [
+          ".adsbygoogle",
+          ".advertisement",
+          ".ad-banner",
+          "#ad-container",
+          "#ad-content",
+          "#advertisement",
+        ];
+
         let isBlocked = false;
-        for (const element of adElements) {
-          const style = window.getComputedStyle(element);
-          if (
-            style.display === "none" ||
-            style.visibility === "hidden" ||
-            element.offsetHeight === 0 ||
-            element.offsetWidth === 0
-          ) {
-            isBlocked = true;
-            break;
+        for (const selector of adSelectors) {
+          const elements = document.querySelectorAll(selector);
+          for (const element of elements) {
+            const style = window.getComputedStyle(element);
+            if (
+              style.display === "none" ||
+              style.visibility === "hidden" ||
+              element.offsetHeight === 0 ||
+              element.offsetWidth === 0 ||
+              !document.body.contains(element)
+            ) {
+              isBlocked = true;
+              break;
+            }
           }
+          if (isBlocked) break;
         }
 
         setAdBlockDetected(isBlocked);
