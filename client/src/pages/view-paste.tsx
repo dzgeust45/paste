@@ -131,13 +131,19 @@ export default function ViewPaste() {
       title: "Copied!",
       description: `${label} copied to clipboard.`,
     });
-    // Popunder ad — opens behind current window on copy click
-    const popup = window.open("https://omg10.com/4/10075377", "_blank");
-    if (popup) {
-      popup.blur();
-      window.focus();
-    }
   };
+
+  useEffect(() => {
+    const handleCopy = () => {
+      const popup = window.open("https://omg10.com/4/10075377", "_blank");
+      if (popup) {
+        popup.blur();
+        window.focus();
+      }
+    };
+    document.addEventListener("copy", handleCopy);
+    return () => document.removeEventListener("copy", handleCopy);
+  }, []);
 
   const handleEdit = () => {
     if (!paste) return;
