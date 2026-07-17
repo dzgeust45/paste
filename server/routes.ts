@@ -5,8 +5,10 @@ import { generateSlug, generateSecretToken, calculateExpiresAt, isExpired, check
 import { insertPasteSchema, updatePasteSchema, deletePasteSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Rate limiting middleware
+  // Rate limiting middleware — only apply to write operations
   app.use("/api/pastes", (req, res, next) => {
+    if (req.method === "GET") return next();
+
     const ip = req.ip || req.socket.remoteAddress || "unknown";
     
     if (!checkRateLimit(ip)) {
