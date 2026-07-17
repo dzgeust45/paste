@@ -44,32 +44,38 @@ export async function createPasteAPI(data: InsertPaste) {
 
 export async function getPasteAPI(slug: string, token?: string) {
   try {
-    const url = token
-      ? `/api/pastes/${slug}?token=${encodeURIComponent(token)}`
-      : `/api/pastes/${slug}`;
+    const { data, error } = await supabase
+      .from('pastes')
+      .select('*')
+      .eq('slug', slug)
+      .single();
 
-    const res = await fetch(url, { credentials: 'include' });
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error('Paste not found');
+      }
+      throw new Error(error.message);
+    }
 
-    if (res.status === 403) {
-      const body = await res.json().catch(() => ({}));
-      if (body.requiresToken) {
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      throw new Error('Paste has expired');
+    }
+
+    // Check privacy
+    if (data.privacy === 'private') {
+      if (!token || token !== data.secret_token) {
         const err = new Error('This paste is private');
         (err as any).requiresToken = true;
         throw err;
       }
-      throw new Error(body.error || 'Access denied');
     }
 
-    if (res.status === 410) {
-      throw new Error('Paste has expired');
-    }
+    // Increment view count via server (needs admin key to bypass RLS)
+    fetch(`/api/pastes/${slug}/view`, { method: 'POST', credentials: 'include' })
+      .catch(() => {}); // fire-and-forget, don't block paste display
 
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || 'Paste not found');
-    }
-
-    return res.json();
+    return { ...data, views: (data.views || 0) + 1 };
   } catch (err: any) {
     console.error('getPasteAPI error:', err);
     throw err;

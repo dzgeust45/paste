@@ -97,6 +97,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Increment view count (called client-side after fetching paste directly from Supabase)
+  app.post("/api/pastes/:slug/view", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const { data: paste } = await supabaseAdmin
+        .from('pastes')
+        .select('views')
+        .eq('slug', slug)
+        .single();
+
+      if (paste) {
+        await supabaseAdmin
+          .from('pastes')
+          .update({ views: paste.views + 1 })
+          .eq('slug', slug);
+      }
+
+      res.json({ success: true });
+    } catch {
+      res.json({ success: false });
+    }
+  });
+
   // Update paste
   app.put("/api/pastes/:slug", async (req, res) => {
     try {
