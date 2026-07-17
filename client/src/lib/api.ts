@@ -1,52 +1,81 @@
+import { supabase } from './supabase';
 import { type InsertPaste } from '@shared/schema';
-
-async function apiFetch(url: string, options?: RequestInit) {
-  const res = await fetch(url, { credentials: 'include', ...options });
-  return res;
-}
+import { nanoid } from 'nanoid';
 
 export async function createPasteAPI(data: InsertPaste) {
-  const res = await apiFetch('/api/pastes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
+  try {
+    const slug = nanoid(8);
+    const secret_token = nanoid(64);
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Failed to create paste');
+    // Calculate expiration if needed
+    let expires_at = null;
+    if (data.expiration && data.expiration !== 'never') {
+      const now = new Date();
+      if (data.expiration === '1h') {
+        now.setHours(now.getHours() + 1);
+      } else if (data.expiration === '1d') {
+        now.setDate(now.getDate() + 1);
+      } else if (data.expiration === '1w') {
+        now.setDate(now.getDate() + 7);
+      }
+      expires_at = now.toISOString();
+    }
+
+    const { error } = await supabase.from('pastes').insert({
+      slug,
+      title: data.title || null,
+      content: data.content,
+      language: data.language || 'plaintext',
+      privacy: data.privacy || 'unlisted',
+      secret_token,
+      created_at: new Date().toISOString(),
+      expires_at,
+      views: 0,
+    });
+
+    if (error) throw new Error(error.message);
+
+    return { slug, secret_token };
+  } catch (err: any) {
+    console.error('createPasteAPI error:', err);
+    throw err;
   }
-
-  return res.json(); // { slug, secret_token }
 }
 
 export async function getPasteAPI(slug: string, token?: string) {
-  const url = token
-    ? `/api/pastes/${slug}?token=${encodeURIComponent(token)}`
-    : `/api/pastes/${slug}`;
+  try {
+    const { data, error } = await supabase
+      .from('pastes')
+      .select('*')
+      .eq('slug', slug)
+      .single();
 
-  const res = await apiFetch(url);
-
-  if (res.status === 403) {
-    const body = await res.json().catch(() => ({}));
-    if (body.requiresToken) {
-      const err = new Error('This paste is private');
-      (err as any).requiresToken = true;
-      throw err;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error('Paste not found');
+      }
+      throw new Error(error.message);
     }
-    throw new Error(body.error || 'Access denied');
-  }
 
-  if (res.status === 410) {
-    throw new Error('Paste has expired');
-  }
+    // Check if expired
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      throw new Error('Paste has expired');
+    }
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Paste not found');
-  }
+    // Check privacy
+    if (data.privacy === 'private') {
+      if (!token || token !== data.secret_token) {
+        const err = new Error('This paste is private');
+        (err as any).requiresToken = true;
+        throw err;
+      }
+    }
 
-  return res.json();
+    return data;
+  } catch (err: any) {
+    console.error('getPasteAPI error:', err);
+    throw err;
+  }
 }
 
 export async function updatePasteAPI(
@@ -54,33 +83,45 @@ export async function updatePasteAPI(
   updates: { title?: string; content?: string; language?: string },
   secret_token: string
 ) {
-  const res = await fetch(`/api/pastes/${slug}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...updates, secret_token }),
-    credentials: 'include',
-  });
+  const { data: paste, error: fetchError } = await supabase
+    .from('pastes')
+    .select('*')
+    .eq('slug', slug)
+    .single();
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Failed to update paste');
+  if (fetchError) throw new Error('Paste not found');
+  if (paste.secret_token !== secret_token) {
+    throw new Error('Invalid secret token');
   }
 
-  return res.json();
+  const { error: updateError } = await supabase
+    .from('pastes')
+    .update(updates)
+    .eq('slug', slug);
+
+  if (updateError) throw new Error(updateError.message);
+
+  return { ...paste, ...updates };
 }
 
 export async function deletePasteAPI(slug: string, secret_token: string) {
-  const res = await fetch(`/api/pastes/${slug}`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret_token }),
-    credentials: 'include',
-  });
+  const { data: paste, error: fetchError } = await supabase
+    .from('pastes')
+    .select('*')
+    .eq('slug', slug)
+    .single();
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Failed to delete paste');
+  if (fetchError) throw new Error('Paste not found');
+  if (paste.secret_token !== secret_token) {
+    throw new Error('Invalid secret token');
   }
+
+  const { error: deleteError } = await supabase
+    .from('pastes')
+    .delete()
+    .eq('slug', slug);
+
+  if (deleteError) throw new Error(deleteError.message);
 
   return true;
 }
