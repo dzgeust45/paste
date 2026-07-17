@@ -14,6 +14,7 @@ Paste-Life is a minimal, developer-focused pastebin application for sharing code
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Whenever new database tables or columns are added, provide the SQL schema code so the user can run it in Supabase.
 
 ## System Architecture
 
