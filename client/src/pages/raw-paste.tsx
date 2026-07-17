@@ -2,13 +2,16 @@ import { useEffect } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { type Paste } from "@shared/schema";
+import { getPasteAPI } from "@/lib/api";
 
 export default function RawPaste() {
   const { slug } = useParams<{ slug: string }>();
 
   const { data: paste, isLoading, error } = useQuery<Paste>({
-    queryKey: ["/api/pastes", slug],
+    queryKey: ["/api/pastes/raw", slug],
+    queryFn: () => getPasteAPI(slug) as Promise<Paste>,
     enabled: !!slug,
+    retry: false,
   });
 
   useEffect(() => {

@@ -91,45 +91,33 @@ export async function updatePasteAPI(
   updates: { title?: string; content?: string; language?: string },
   secret_token: string
 ) {
-  const { data: paste, error: fetchError } = await supabase
-    .from('pastes')
-    .select('*')
-    .eq('slug', slug)
-    .single();
+  const res = await fetch(`/api/pastes/${slug}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...updates, secret_token }),
+    credentials: 'include',
+  });
 
-  if (fetchError) throw new Error('Paste not found');
-  if (paste.secret_token !== secret_token) {
-    throw new Error('Invalid token');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to update paste');
   }
 
-  const { error: updateError } = await supabase
-    .from('pastes')
-    .update(updates)
-    .eq('slug', slug);
-
-  if (updateError) throw new Error(updateError.message);
-
-  return { ...paste, ...updates };
+  return res.json();
 }
 
 export async function deletePasteAPI(slug: string, secret_token: string) {
-  const { data: paste, error: fetchError } = await supabase
-    .from('pastes')
-    .select('*')
-    .eq('slug', slug)
-    .single();
+  const res = await fetch(`/api/pastes/${slug}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret_token }),
+    credentials: 'include',
+  });
 
-  if (fetchError) throw new Error('Paste not found');
-  if (paste.secret_token !== secret_token) {
-    throw new Error('Invalid token');
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to delete paste');
   }
-
-  const { error: deleteError } = await supabase
-    .from('pastes')
-    .delete()
-    .eq('slug', slug);
-
-  if (deleteError) throw new Error(deleteError.message);
 
   return true;
 }
