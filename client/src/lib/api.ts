@@ -44,42 +44,32 @@ export async function createPasteAPI(data: InsertPaste) {
 
 export async function getPasteAPI(slug: string, token?: string) {
   try {
-    const { data, error } = await supabase
-      .from('pastes')
-      .select('*')
-      .eq('slug', slug)
-      .single();
+    const url = token
+      ? `/api/pastes/${slug}?token=${encodeURIComponent(token)}`
+      : `/api/pastes/${slug}`;
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        throw new Error('Paste not found');
+    const res = await fetch(url, { credentials: 'include' });
+
+    if (res.status === 403) {
+      const body = await res.json().catch(() => ({}));
+      if (body.requiresToken) {
+        const err = new Error('This paste is private');
+        (err as any).requiresToken = true;
+        throw err;
       }
-      throw new Error(error.message);
+      throw new Error(body.error || 'Access denied');
     }
 
-    // Check if expired
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      // Delete expired paste
-      await supabase.from('pastes').delete().eq('slug', slug);
+    if (res.status === 410) {
       throw new Error('Paste has expired');
     }
 
-    // Check privacy
-    if (data.privacy === 'private') {
-      if (!token || token !== data.secret_token) {
-        const error = new Error('This paste is private');
-        (error as any).requiresToken = true;
-        throw error;
-      }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Paste not found');
     }
 
-    // Increment view count
-    await supabase
-      .from('pastes')
-      .update({ views: (data.views || 0) + 1 })
-      .eq('slug', slug);
-
-    return data;
+    return res.json();
   } catch (err: any) {
     console.error('getPasteAPI error:', err);
     throw err;
