@@ -4,6 +4,13 @@
 
 Paste-Life is a minimal, developer-focused pastebin application for sharing code snippets with syntax highlighting, expiration controls, and privacy settings. The application allows users to create, view, edit, and delete text/code pastes without requiring authentication. Each paste is identified by a unique slug and can be secured with a secret token for editing and deletion operations.
 
+## How to Run on Replit
+
+1. **Install dependencies** (already done): `npm install`
+2. **Start the app**: Click the Run button, or the workflow `Start application` runs `npm run dev`
+3. **Environment**: Supabase credentials are stored in `.env` — `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
+4. The server starts on port 5000 and serves both the API (`/api/pastes`) and the React frontend
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
