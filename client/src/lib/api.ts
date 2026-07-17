@@ -72,11 +72,12 @@ export async function getPasteAPI(slug: string, token?: string) {
     }
 
     // Increment view count via RPC (security definer bypasses RLS)
-    supabase.rpc('increment_paste_views', { paste_slug: slug }).catch(() => {});
+    // Fire-and-forget: don't await, don't block paste load
+    supabase.rpc('increment_paste_views', { paste_slug: slug }).then(() => {}).catch(() => {});
 
-    return { ...data, views: (data.views || 0) + 1 };
+    return data;
   } catch (err: any) {
-    console.error('getPasteAPI error:', err);
+    console.error('getPasteAPI error:', err?.message || err?.code || JSON.stringify(err), err);
     throw err;
   }
 }
