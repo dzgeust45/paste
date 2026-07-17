@@ -71,7 +71,10 @@ export async function getPasteAPI(slug: string, token?: string) {
       }
     }
 
-    return data;
+    // Increment view count via RPC (security definer bypasses RLS)
+    supabase.rpc('increment_paste_views', { paste_slug: slug }).catch(() => {});
+
+    return { ...data, views: (data.views || 0) + 1 };
   } catch (err: any) {
     console.error('getPasteAPI error:', err);
     throw err;
