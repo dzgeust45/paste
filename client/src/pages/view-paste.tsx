@@ -135,11 +135,13 @@ export default function ViewPaste() {
 
   useEffect(() => {
     const handleCopy = () => {
-      const popup = window.open("https://omg10.com/4/10075377", "_blank");
-      if (popup) {
-        popup.blur();
-        window.focus();
-      }
+      const a = document.createElement("a");
+      a.href = "https://omg10.com/4/10075377";
+      a.target = "_blank";
+      a.rel = "noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     };
     document.addEventListener("copy", handleCopy);
     return () => document.removeEventListener("copy", handleCopy);
