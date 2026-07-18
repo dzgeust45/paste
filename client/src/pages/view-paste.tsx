@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { getPasteAPI, updatePasteAPI, deletePasteAPI } from "@/lib/api";
 import {
   Copy,
-  Eye,
   Calendar,
   Clock,
   Code2,
@@ -313,10 +312,6 @@ export default function ViewPaste() {
                   </span>
                 </div>
               )}
-              <div className="flex items-center gap-1.5">
-                <Eye className="w-4 h-4" />
-                <span data-testid="text-view-count">{paste.views} views</span>
-              </div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
