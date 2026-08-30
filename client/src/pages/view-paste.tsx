@@ -135,7 +135,7 @@ export default function ViewPaste() {
   useEffect(() => {
     const handleCopy = () => {
       const a = document.createElement("a");
-      a.href = "https://www.steamfamily.xyz/browse";
+      a.href = "https://t.me/steam_family";
       a.target = "_blank";
       a.rel = "noreferrer";
       document.body.appendChild(a);
